@@ -83,6 +83,7 @@ class InternationalPhoneNumberInput extends StatefulWidget {
 
   final FocusNode? focusNode;
   final Iterable<String>? autofillHints;
+  final List<TextInputFormatter>? inputFormatters;
 
   final List<String>? countries;
 
@@ -121,6 +122,7 @@ class InternationalPhoneNumberInput extends StatefulWidget {
       this.textAlign = TextAlign.start,
       this.textAlignVertical = TextAlignVertical.center,
       this.scrollPadding = const EdgeInsets.all(20.0),
+      this.inputFormatters,
       this.focusNode,
       this.cursorColor,
       this.autofillHints,
@@ -451,6 +453,7 @@ class _InputWidgetView
                         },
                       )
                     : FilteringTextInputFormatter.digitsOnly,
+                ...?widget.inputFormatters,
               ],
               onChanged: state.onChanged,
             ),
