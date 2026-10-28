@@ -1,0 +1,53 @@
+name: Repository validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: repository-validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check changed files
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: git diff --check "$BASE_SHA" HEAD
+      - name: Validate repository manifests
+        run: |
+          python3 -m venv "$RUNNER_TEMP/repository-validation"
+          "$RUNNER_TEMP/repository-validation/bin/pip" install --quiet PyYAML==6.0.2
+          "$RUNNER_TEMP/repository-validation/bin/python" - <<'PY'
+          import json
+          from pathlib import Path
+          import subprocess
+          import xml.etree.ElementTree as ET
+          import yaml
+
+          tracked = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          count = 0
+          for name in tracked:
+              if not name:
+                  continue
+              path = Path(name)
+              if path.name in ('package.json', 'composer.json') or name.endswith(('.postman_collection.json', '.postman_environment.json')):
+                  json.loads(path.read_text())
+                  count += 1
+              elif path.name == 'pom.xml':
+                  ET.parse(path)
+                  count += 1
+              elif path.name == 'pubspec.yaml' or name.startswith('.github/workflows/') or (path.suffix in ('.yml', '.yaml') and '/templates/' not in name and '/charts/' not in name):
+                  list(yaml.parse(path.read_text()))
+                  count += 1
+          print(f'Validated {count} JSON/XML/YAML manifests; whitespace checks run on every PR.')
+          PY
