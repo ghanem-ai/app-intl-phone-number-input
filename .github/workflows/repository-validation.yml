@@ -10,7 +10,7 @@ permissions:
 jobs:
   validate:
     name: repository-validation
-    runs-on: ghanem-self-hosted-runner
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
